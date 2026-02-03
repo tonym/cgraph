@@ -1,0 +1,12 @@
+{
+  "created_at": "2026-02-03T00:13:09Z",
+  "id": "2026-02-03-001309-example-summary",
+  "merged_at": "2026-02-03T00:13:19Z",
+  "parent": {
+    "id": "2026-02-03-001305-example-branch",
+    "type": "branch"
+  },
+  "status": "canonical",
+  "title": "Example Summary",
+  "type": "summary"
+}
