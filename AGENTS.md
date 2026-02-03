@@ -79,6 +79,34 @@ Branching discipline is part of the repo’s correctness model.
 
 ---
 
+## Handoffs & Phase Summaries (Allowed, Non-Canonical)
+
+This repo may contain operational artifacts that support agent workflows. These are explicitly allowed and must not be treated as part of the canonical lifecycle.
+
+Canonical (CLI-managed)
+- The CLI manages only lifecycle artifact directories that contain a meta.json file.
+- Managed lifecycle roots (canonical):
+  - memory/root/
+  - memory/branch/
+  - memory/summary/
+  - memory/canon/
+  - memory/archive/
+
+Operational (non-canonical)
+- Operational artifacts are permitted and ignored by the CLI:
+  - memory/_ops/handoff/        (task handoffs / agent-to-agent coordination)
+  - memory/summary/*            (phase summaries may be stored here as plain markdown/files)
+
+Rules
+- The CLI MUST ignore any files/folders that are not lifecycle artifact directories (i.e., anything without meta.json).
+- Agents may create these operational folders/files as needed (mkdir if missing).
+- These operational artifacts do not change lifecycle state and must not be treated as “truth” in the same way as managed artifacts.
+
+Note
+- The repo uses memory/ by design. Any naming overlap with external tooling conventions is irrelevant inside this repository; treat memory/ as the project’s artifact root.
+
+---
+
 ## Design Biases (Hard Preferences)
 
 When making tradeoffs, prefer:
