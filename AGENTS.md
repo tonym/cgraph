@@ -1,81 +1,113 @@
-# AGENTS — CGraph Kernel (Gate A)
+# AGENTS — CGraph Repository
 
-## Repo Nature
+## Repo Nature (Canonical)
 
-This repository implements **CGraph**, the memory kernel of the Zephyr system.
+This repository implements **CGraph**, the context graph kernel of the Zephyr system.
 
 CGraph is:
+
 - A filesystem- and Git-backed context kernel
 - CLI-first
-- Append-only
-- Concerned with **truth**, not insight, orchestration, or execution
+- Append-only by lifecycle
+- Concerned with **truth and structure**, not insight, orchestration, or execution
 
-This repo is **infrastructure**, not an application.
+This repository is **infrastructure**, not an application.
 
----
-
-## Current Phase
-
-**Zephyr Phase 1 — Gate A (CGraph Kernel)**
-
-The only goal of this phase is to establish a durable, disciplined
-Root → Branch → Summary → Canon workflow.
+These characteristics are **permanent invariants** of this repo.
 
 ---
 
-## Scope (Strict)
+## Project Status
+
+- **Gate A (CGraph Kernel): COMPLETE**
+- The Root → Branch → Summary → Canon → Archive lifecycle is implemented and proven.
+- This repo now enters a **maintenance + evolution** posture.
+
+Future work may extend capabilities, but **must not violate** the invariants defined here.
+
+---
+
+## Scope Boundaries (Persistent)
 
 ### ✅ In Scope
-- Python-based CLI
+
+- Python-based CLI tooling
 - On-disk artifacts (Markdown + JSON or equivalent)
-- Lifecycle enforcement:
+- Explicit lifecycle transitions:
   - Root
   - Branch
   - Summary
   - Canon merge
   - Archive
 - Git as the truth substrate
-- Minimal documentation
-- Example project proving the full loop
+- Minimal, structural documentation
+- Example projects that *prove* behavior
 
-### ❌ Out of Scope
+### ❌ Out of Scope (Unless Explicitly Reopened)
+
 - UI (web or otherwise)
 - MCP servers or APIs
 - Background processes or daemons
 - Automation, triggers, or watchers
 - Search, embeddings, or insight layers
-- Integration with CManage
+- Orchestration (handled by CManage)
 - Docker or deployment tooling
 - Validation substrates
-- “Future-proofing” abstractions
+- Product-facing abstractions
+- “Future-proofing” layers without concrete need
+
+If a change crosses these boundaries, **the scope must be explicitly redefined first**.
 
 ---
 
-## Design Biases
+## Branching & PR Workflow (Required)
+
+- **Default branch:** `develop`
+- **Protected branch:** `main`
+  - Treat as stable / releasable
+  - No direct pushes
+- **Work policy:**
+  - Branch from `develop`
+  - Open PRs back into `develop`
+- **PRs are expected** for all non-trivial changes.
+- Keep PRs:
+  - Small
+  - Reviewable
+  - Tightly scoped
+
+Branching discipline is part of the repo’s correctness model.
+
+---
+
+## Design Biases (Hard Preferences)
 
 When making tradeoffs, prefer:
+
 - Explicitness over convenience
 - Legibility over flexibility
 - Fewer concepts over extensibility
 - Boring over clever
 
-If something feels like product design, it is out of scope.
+If something feels like **product design**, it is likely out of scope.
 
 ---
 
-## Agent Guidance
+## Agent Operating Guidance
 
 Agents operating in this repo should:
-- Make small, reviewable changes
-- Avoid speculative directories or abstractions
-- Treat the filesystem as the primary interface
-- Leave clear artifacts that prove correctness
 
-Stop work once Gate A is provably satisfied.
+- Treat the filesystem as the primary interface
+- Avoid speculative abstractions or directories
+- Leave clear, inspectable artifacts
+- Prefer correctness proofs over cleverness
+- Stop work when invariants are satisfied
+
+Do not “helpfully extend” the system without an explicit mandate.
 
 ---
 
 ## Authority
 
-This file is authoritative for agent behavior in this repository
-until explicitly revised.
+This file defines **how this repository is allowed to change**.
+
+It is authoritative until explicitly revised.
