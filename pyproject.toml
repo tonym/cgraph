@@ -9,5 +9,8 @@ description = "CGraph kernel CLI"
 readme = "README.md"
 requires-python = ">=3.9"
 
+[project.scripts]
+cgraph = "cgraph.cli:main"
+
 [tool.setuptools]
 packages = ["cgraph"]
