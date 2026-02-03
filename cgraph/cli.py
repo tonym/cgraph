@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 
@@ -8,6 +9,7 @@ from .store import (
     ARCHIVE_DIRNAME,
     CANON_DIRNAME,
     CGraphError,
+    MEMORY_DIRNAME,
     archive_branch_dir,
     append_canon,
     branch_dir,
@@ -39,12 +41,63 @@ def project_path(value: str | None) -> Path:
     return Path(value).resolve() if value else Path.cwd()
 
 
+def git_cmd(base: Path, args: list[str], check: bool = True) -> subprocess.CompletedProcess[str]:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(base), *args],
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError as exc:
+        raise CGraphError("git is not installed or not on PATH") from exc
+
+    if check and result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip()
+        message = f"git {' '.join(args)} failed"
+        if detail:
+            message = f"{message}: {detail}"
+        raise CGraphError(message)
+
+    return result
+
+
+def is_git_repo(base: Path) -> bool:
+    if not base.exists():
+        return False
+    result = git_cmd(base, ["rev-parse", "--is-inside-work-tree"], check=False)
+    return result.returncode == 0
+
+
+def ensure_git_repo(base: Path) -> None:
+    if not base.exists():
+        base.mkdir(parents=True)
+    if is_git_repo(base):
+        return
+    git_cmd(base, ["init"])
+
+
+def require_git_repo(base: Path) -> None:
+    if not base.exists():
+        raise CGraphError(f"Project path does not exist: {base}")
+    if not is_git_repo(base):
+        raise CGraphError("Project is not a Git repository; run 'cgraph init'")
+
+
+def commit_memory(base: Path, message: str) -> None:
+    git_cmd(base, ["add", "-A", "--", MEMORY_DIRNAME])
+    status = git_cmd(base, ["status", "--porcelain", "--", MEMORY_DIRNAME])
+    if not status.stdout.strip():
+        return
+    git_cmd(base, ["commit", "-m", message, "--", MEMORY_DIRNAME])
+
+
 def cmd_init(args: argparse.Namespace) -> None:
     base = project_path(args.project)
-    ensure_layout(base)
-
+    ensure_git_repo(base)
     if root_exists(base):
         fail("root already exists")
+
+    ensure_layout(base)
 
     root = root_dir(base)
     meta = {
@@ -56,11 +109,13 @@ def cmd_init(args: argparse.Namespace) -> None:
     }
     content = f"# {args.title}\n\nCanonical root context.\n"
     create_context(root, meta, content)
+    commit_memory(base, f"cgraph init: {args.title}")
     print(f"root created at {root}")
 
 
 def cmd_branch_new(args: argparse.Namespace) -> None:
     base = project_path(args.project)
+    require_git_repo(base)
     if not root_exists(base):
         fail("root not initialized; run 'cgraph init'")
 
@@ -83,11 +138,13 @@ def cmd_branch_new(args: argparse.Namespace) -> None:
     content = f"# {args.title}\n\nBranch context.\n"
 
     create_context(branch, meta, content)
+    commit_memory(base, f"cgraph branch: {branch_id}")
     print(branch_id)
 
 
 def cmd_summary_new(args: argparse.Namespace) -> None:
     base = project_path(args.project)
+    require_git_repo(base)
     if not root_exists(base):
         fail("root not initialized; run 'cgraph init'")
 
@@ -111,11 +168,13 @@ def cmd_summary_new(args: argparse.Namespace) -> None:
     content = f"# {args.title}\n\nSummary content.\n"
 
     create_context(summary, meta, content)
+    commit_memory(base, f"cgraph summary: {summary_id}")
     print(summary_id)
 
 
 def cmd_canon_merge(args: argparse.Namespace) -> None:
     base = project_path(args.project)
+    require_git_repo(base)
     if not root_exists(base):
         fail("root not initialized; run 'cgraph init'")
 
@@ -151,11 +210,13 @@ def cmd_canon_merge(args: argparse.Namespace) -> None:
     from .store import move_dir
 
     move_dir(summary_path, destination)
+    commit_memory(base, f"cgraph canon merge: {args.summary}")
     print(f"summary merged into root; moved to {CANON_DIRNAME}/")
 
 
 def cmd_branch_archive(args: argparse.Namespace) -> None:
     base = project_path(args.project)
+    require_git_repo(base)
     if not root_exists(base):
         fail("root not initialized; run 'cgraph init'")
 
@@ -173,6 +234,7 @@ def cmd_branch_archive(args: argparse.Namespace) -> None:
     from .store import move_dir
 
     move_dir(branch_path, destination)
+    commit_memory(base, f"cgraph branch archive: {args.branch}")
     print(f"branch archived to {ARCHIVE_DIRNAME}/")
 
 
