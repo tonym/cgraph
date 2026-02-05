@@ -209,8 +209,17 @@ def cmd_observe_get(args: argparse.Namespace) -> None:
     base = project_path(args.project)
     require_git_repo(base)
 
+    if args.canonical and args.non_canonical:
+        fail("choose only one of --canonical or --non-canonical")
+
+    canonical_filter = None
+    if args.canonical:
+        canonical_filter = True
+    elif args.non_canonical:
+        canonical_filter = False
+
     contexts = collect_contexts(base, args.ref)
-    context = find_context(contexts, args.id, args.type)
+    context = find_context(contexts, args.id, args.type, canonical_filter)
     payload = serialize_observation(context, args.ref, base, include_content=not args.meta_only)
     print(json.dumps(payload, indent=2, sort_keys=True))
 
@@ -298,6 +307,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--type",
         choices=["root", "branch", "summary"],
         help="Optional context type to disambiguate ids",
+    )
+    observe_get.add_argument(
+        "--canonical",
+        action="store_true",
+        help="Require canonical context",
+    )
+    observe_get.add_argument(
+        "--non-canonical",
+        action="store_true",
+        help="Require non-canonical context",
     )
     observe_get.add_argument(
         "--ref",

@@ -85,6 +85,7 @@ def _content_path(meta_path: str) -> str:
 
 def collect_contexts(base: Path, ref: str) -> list[ObservedContext]:
     paths = git_list_tree(base, ref, MEMORY_DIRNAME)
+    path_set = set(paths)
     meta_paths = [path for path in paths if path.endswith("/meta.json")]
     contexts: list[ObservedContext] = []
 
@@ -115,6 +116,8 @@ def collect_contexts(base: Path, ref: str) -> list[ObservedContext]:
         canonical = status == "canonical"
         parent = meta.get("parent") if isinstance(meta.get("parent"), dict) else None
         content_path = _content_path(meta_path)
+        if content_path not in path_set:
+            raise CGraphError(f"Missing content.md for {location} at {ref}")
 
         contexts.append(
             ObservedContext(
@@ -156,16 +159,21 @@ def find_context(
     contexts: Iterable[ObservedContext],
     context_id: str,
     context_type: str | None = None,
+    canonical: bool | None = None,
 ) -> ObservedContext:
     matches = [
         context
         for context in contexts
-        if context.id == context_id and (context_type is None or context.type == context_type)
+        if context.id == context_id
+        and (context_type is None or context.type == context_type)
+        and (canonical is None or context.canonical == canonical)
     ]
     if not matches:
         raise CGraphError(f"Context not found: {context_id}")
     if len(matches) > 1:
-        raise CGraphError(f"Multiple contexts match {context_id}; specify --type")
+        raise CGraphError(
+            f"Multiple contexts match {context_id}; specify --type or --canonical/--non-canonical"
+        )
     return matches[0]
 
 

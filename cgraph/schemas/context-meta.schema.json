@@ -48,7 +48,13 @@
         "archived_at": {"$ref": "#/$defs/timestamp"},
         "parent": {"$ref": "#/$defs/contextRef"}
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "archived"}}},
+          "then": {"required": ["archived_at"]}
+        }
+      ]
     },
     "summary": {
       "type": "object",
@@ -62,7 +68,13 @@
         "merged_at": {"$ref": "#/$defs/timestamp"},
         "parent": {"$ref": "#/$defs/contextRef"}
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "canonical"}}},
+          "then": {"required": ["merged_at"]}
+        }
+      ]
     }
   }
 }

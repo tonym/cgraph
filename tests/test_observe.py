@@ -22,6 +22,7 @@ from cgraph.store import (
     ROOT_DIRNAME,
     SUMMARY_DIRNAME,
     ContextRef,
+    CGraphError,
 )
 
 
@@ -156,3 +157,11 @@ class ObserveTests(unittest.TestCase):
         shutil.rmtree(self.base / MEMORY_DIRNAME)
         contexts = collect_contexts(self.base, "HEAD")
         self.assertTrue(contexts)
+
+    def test_missing_content_raises_error(self) -> None:
+        missing = self.base / MEMORY_DIRNAME / SUMMARY_DIRNAME / "s1" / "content.md"
+        missing.unlink()
+        run_git(self.base, ["add", "-A"])
+        run_git(self.base, ["commit", "-m", "remove content"])
+        with self.assertRaises(CGraphError):
+            collect_contexts(self.base, "HEAD")
