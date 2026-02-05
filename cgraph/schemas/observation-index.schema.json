@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cgraph.schemas/observation-index.schema.json",
+  "title": "CGraph Observation Index",
+  "type": "object",
+  "required": ["schema_version", "ref", "contexts"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1"},
+    "ref": {"type": "string"},
+    "contexts": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/observedContext"}
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "contextRef": {
+      "type": "object",
+      "required": ["type", "id"],
+      "properties": {
+        "type": {"enum": ["root", "branch", "summary"]},
+        "id": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "observedContext": {
+      "type": "object",
+      "required": ["id", "type", "status", "canonical", "location"],
+      "properties": {
+        "id": {"type": "string"},
+        "type": {"enum": ["root", "branch", "summary"]},
+        "status": {"type": "string"},
+        "canonical": {"type": "boolean"},
+        "location": {"type": "string"},
+        "parent": {"$ref": "#/$defs/contextRef"},
+        "meta": {"$ref": "context-meta.schema.json"},
+        "content": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

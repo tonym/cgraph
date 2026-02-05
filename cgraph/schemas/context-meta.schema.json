@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cgraph.schemas/context-meta.schema.json",
+  "title": "CGraph Context Metadata",
+  "type": "object",
+  "oneOf": [
+    {"$ref": "#/$defs/root"},
+    {"$ref": "#/$defs/branch"},
+    {"$ref": "#/$defs/summary"}
+  ],
+  "$defs": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "contextRef": {
+      "type": "object",
+      "required": ["type", "id"],
+      "properties": {
+        "type": {"enum": ["root", "branch", "summary"]},
+        "id": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "root": {
+      "type": "object",
+      "required": ["id", "type", "status", "title", "created_at"],
+      "properties": {
+        "id": {"const": "root"},
+        "type": {"const": "root"},
+        "status": {"const": "canonical"},
+        "title": {"type": "string"},
+        "created_at": {"$ref": "#/$defs/timestamp"},
+        "updated_at": {"$ref": "#/$defs/timestamp"},
+        "latest_summary_id": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "branch": {
+      "type": "object",
+      "required": ["id", "type", "status", "title", "created_at", "parent"],
+      "properties": {
+        "id": {"type": "string"},
+        "type": {"const": "branch"},
+        "status": {"enum": ["active", "archived"]},
+        "title": {"type": "string"},
+        "created_at": {"$ref": "#/$defs/timestamp"},
+        "archived_at": {"$ref": "#/$defs/timestamp"},
+        "parent": {"$ref": "#/$defs/contextRef"}
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "required": ["id", "type", "status", "title", "created_at", "parent"],
+      "properties": {
+        "id": {"type": "string"},
+        "type": {"const": "summary"},
+        "status": {"enum": ["active", "canonical"]},
+        "title": {"type": "string"},
+        "created_at": {"$ref": "#/$defs/timestamp"},
+        "merged_at": {"$ref": "#/$defs/timestamp"},
+        "parent": {"$ref": "#/$defs/contextRef"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

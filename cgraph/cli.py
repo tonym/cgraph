@@ -1,10 +1,19 @@
 from __future__ import annotations
 
 import argparse
-import subprocess
+import json
 import sys
 from pathlib import Path
 
+from .git import ensure_git_repo, git_cmd, require_git_repo
+from .observe import (
+    collect_contexts,
+    children_of,
+    filter_contexts,
+    find_context,
+    serialize_index,
+    serialize_observation,
+)
 from .store import (
     ARCHIVE_DIRNAME,
     CANON_DIRNAME,
@@ -39,48 +48,6 @@ def fail(message: str) -> None:
 
 def project_path(value: str | None) -> Path:
     return Path(value).resolve() if value else Path.cwd()
-
-
-def git_cmd(base: Path, args: list[str], check: bool = True) -> subprocess.CompletedProcess[str]:
-    try:
-        result = subprocess.run(
-            ["git", "-C", str(base), *args],
-            capture_output=True,
-            text=True,
-        )
-    except FileNotFoundError as exc:
-        raise CGraphError("git is not installed or not on PATH") from exc
-
-    if check and result.returncode != 0:
-        detail = (result.stderr or result.stdout).strip()
-        message = f"git {' '.join(args)} failed"
-        if detail:
-            message = f"{message}: {detail}"
-        raise CGraphError(message)
-
-    return result
-
-
-def is_git_repo(base: Path) -> bool:
-    if not base.exists():
-        return False
-    result = git_cmd(base, ["rev-parse", "--is-inside-work-tree"], check=False)
-    return result.returncode == 0
-
-
-def ensure_git_repo(base: Path) -> None:
-    if not base.exists():
-        base.mkdir(parents=True)
-    if is_git_repo(base):
-        return
-    git_cmd(base, ["init"])
-
-
-def require_git_repo(base: Path) -> None:
-    if not base.exists():
-        raise CGraphError(f"Project path does not exist: {base}")
-    if not is_git_repo(base):
-        raise CGraphError("Project is not a Git repository; run 'cgraph init'")
 
 
 def commit_memory(base: Path, message: str) -> None:
@@ -238,6 +205,46 @@ def cmd_branch_archive(args: argparse.Namespace) -> None:
     print(f"branch archived to {ARCHIVE_DIRNAME}/")
 
 
+def cmd_observe_get(args: argparse.Namespace) -> None:
+    base = project_path(args.project)
+    require_git_repo(base)
+
+    contexts = collect_contexts(base, args.ref)
+    context = find_context(contexts, args.id, args.type)
+    payload = serialize_observation(context, args.ref, base, include_content=not args.meta_only)
+    print(json.dumps(payload, indent=2, sort_keys=True))
+
+
+def cmd_observe_list(args: argparse.Namespace) -> None:
+    base = project_path(args.project)
+    require_git_repo(base)
+
+    if args.canonical and args.non_canonical:
+        fail("choose only one of --canonical or --non-canonical")
+
+    canonical_filter = None
+    if args.canonical:
+        canonical_filter = True
+    elif args.non_canonical:
+        canonical_filter = False
+
+    contexts = collect_contexts(base, args.ref)
+    contexts = filter_contexts(contexts, args.type, canonical_filter)
+    payload = serialize_index(contexts, args.ref)
+    print(json.dumps(payload, indent=2, sort_keys=True))
+
+
+def cmd_observe_children(args: argparse.Namespace) -> None:
+    base = project_path(args.project)
+    require_git_repo(base)
+
+    parent = parse_parent(args.parent)
+    contexts = collect_contexts(base, args.ref)
+    children = children_of(contexts, parent)
+    payload = serialize_index(children, args.ref)
+    print(json.dumps(payload, indent=2, sort_keys=True))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="cgraph")
     parser.add_argument(
@@ -281,6 +288,64 @@ def build_parser() -> argparse.ArgumentParser:
     canon_merge = canon_sub.add_parser("merge", help="Merge summary into root")
     canon_merge.add_argument("--summary", required=True, help="Summary id")
     canon_merge.set_defaults(func=cmd_canon_merge)
+
+    observe_parser = subparsers.add_parser("observe", help="Read-only observation commands")
+    observe_sub = observe_parser.add_subparsers(dest="observe_cmd", required=True)
+
+    observe_get = observe_sub.add_parser("get", help="Fetch a context by id")
+    observe_get.add_argument("--id", required=True, help="Context id")
+    observe_get.add_argument(
+        "--type",
+        choices=["root", "branch", "summary"],
+        help="Optional context type to disambiguate ids",
+    )
+    observe_get.add_argument(
+        "--ref",
+        default="HEAD",
+        help="Git ref to read from (default: HEAD)",
+    )
+    observe_get.add_argument(
+        "--meta-only",
+        action="store_true",
+        help="Exclude content.md from output",
+    )
+    observe_get.set_defaults(func=cmd_observe_get)
+
+    observe_list = observe_sub.add_parser("list", help="List contexts")
+    observe_list.add_argument(
+        "--type",
+        choices=["root", "branch", "summary"],
+        help="Optional context type filter",
+    )
+    observe_list.add_argument(
+        "--canonical",
+        action="store_true",
+        help="Only include canonical contexts",
+    )
+    observe_list.add_argument(
+        "--non-canonical",
+        action="store_true",
+        help="Only include non-canonical contexts",
+    )
+    observe_list.add_argument(
+        "--ref",
+        default="HEAD",
+        help="Git ref to read from (default: HEAD)",
+    )
+    observe_list.set_defaults(func=cmd_observe_list)
+
+    observe_children = observe_sub.add_parser("children", help="List contexts by parent")
+    observe_children.add_argument(
+        "--parent",
+        required=True,
+        help="Parent context (root or <type>:<id>)",
+    )
+    observe_children.add_argument(
+        "--ref",
+        default="HEAD",
+        help="Git ref to read from (default: HEAD)",
+    )
+    observe_children.set_defaults(func=cmd_observe_children)
 
     return parser
 

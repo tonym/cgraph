@@ -76,6 +76,29 @@ Archive a branch (moves branch into `memory/archive/branch/`):
 python -m cgraph branch archive --branch <branch-id>
 ```
 
+## Observation (Phase 2)
+
+Observation surfaces are read-only and Git-derived. They never write to the
+working tree or mutate canon. Use `--ref` to inspect a specific Git ref
+(defaults to `HEAD`).
+
+List contexts (optionally filter canonical/non-canonical):
+```bash
+python -m cgraph observe list --canonical
+```
+
+Fetch a context by id (include meta + content by default):
+```bash
+python -m cgraph observe get --id <context-id>
+```
+
+List children by parent reference:
+```bash
+python -m cgraph observe children --parent branch:<branch-id>
+```
+
+Machine-readable schemas live in `cgraph/schemas/`.
+
 ### Lifecycle Enforcement
 
 - Branch → Root direct merges are not supported.
